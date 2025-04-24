@@ -8,6 +8,10 @@
     body { font-family: Arial; max-width: 800px; margin: auto; padding: 2em; }
     .post-list a { display: block; margin-bottom: 0.5em; }
     .markdown-body { border-top: 1px solid #ddd; margin-top: 1em; padding-top: 1em; }
+    #comment-section { margin-top: 2em; border-top: 1px solid #ccc; padding-top: 1em; }
+    #comments { margin-top: 1em; }
+    .comment { background: #f9f9f9; padding: 0.5em; margin-bottom: 0.5em; border-left: 4px solid #ccc; }
+    .comment-time { font-size: 0.8em; color: #888; margin-top: 0.5em; }
   </style>
 </head>
 <body>
@@ -15,7 +19,16 @@
   <div class="post-list" id="post-list"></div>
   <div class="markdown-body" id="post-content"></div>
 
+  <div id="comment-section">
+    <h3>评论</h3>
+    <textarea id="comment-input" rows="3" style="width: 100%;"></textarea><br>
+    <button onclick="submitComment()">提交评论</button>
+    <div id="comments"></div>
+  </div>
+
   <script>
+    let currentSlug = '';
+
     async function loadPosts() {
       const res = await fetch("/api/posts");
       const posts = await res.json();
@@ -27,11 +40,48 @@
         link.href = "#";
         link.textContent = post.title;
         link.onclick = () => {
-          document.getElementById("post-content").innerHTML =
-            marked.parse(post.content);
+          currentSlug = slug;
+          document.getElementById("post-content").innerHTML = marked.parse(post.content);
+          loadComments(); // 加载该文章的评论
         };
         list.appendChild(link);
       }
+    }
+
+    async function submitComment() {
+      const text = document.getElementById("comment-input").value.trim();
+      if (!text || !currentSlug) return;
+
+      await fetch(`/api/comments/${currentSlug}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      });
+
+      document.getElementById("comment-input").value = "";
+      loadComments();
+    }
+
+    async function loadComments() {
+      if (!currentSlug) return;
+
+      const res = await fetch(`/api/comments/${currentSlug}`);
+      const comments = await res.json();
+      const commentDiv = document.getElementById("comments");
+      commentDiv.innerHTML = "";
+
+      comments.forEach(comment => {
+        const div = document.createElement("div");
+        div.className = "comment";
+        div.innerHTML = marked.parse(comment.text);
+
+        const timeDiv = document.createElement("div");
+        timeDiv.className = "comment-time";
+        timeDiv.textContent = `评论时间: ${new Date(comment.timestamp).toLocaleString()}`;
+        div.appendChild(timeDiv);
+
+        commentDiv.appendChild(div);
+      });
     }
 
     loadPosts();
