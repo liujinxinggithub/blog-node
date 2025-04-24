@@ -2,20 +2,35 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const app = express();
+const fs = require("fs");
 
+const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-const posts = {
-  "hello-world": { title: "你不好，世界", content: "# 欢迎来到我的博客\n\n这是我写的第一篇文章，使用 **Markdown** 撰写，支持标题、列表、代码等格式。\n\n## 小节\n- 点1\n- 点2\n\n> 喜欢就评论一条吧！" },
-  "qt-performance": { title: "Qt 性能优化技巧", content: "# Qt 性能优化技巧\n\n整理 Qt 开发中常用的优化方法，包括 UI 渲染、事件处理、多线程使用等。\n\n## 优化点\n1. 使用 setUpdatesEnabled\n2. 减少频繁重绘\n3. 使用 QTimer 批处理事件" }
-};
+const postsDir = path.join(__dirname, "posts");
+
+function loadPosts() {
+  const files = fs.readdirSync(postsDir).filter(file => file.endsWith(".md"));
+  const posts = {};
+
+  files.forEach(file => {
+    const slug = path.basename(file, ".md");
+    const content = fs.readFileSync(path.join(postsDir, file), "utf-8");
+    const title = content.split("\n")[0].replace(/^# /, "") || slug;
+    posts[slug] = { title, content };
+  });
+
+  return posts;
+}
 
 let comments = [];
 
-app.get("/api/posts", (req, res) => res.json(posts));
+app.get("/api/posts", (req, res) => {
+  const posts = loadPosts();
+  res.json(posts);
+});
 
 app.post("/api/comments", (req, res) => {
   comments.push(req.body.text);

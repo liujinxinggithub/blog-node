@@ -1,13 +1,40 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>我的博客</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>My Blog</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    body { font-family: Arial; max-width: 800px; margin: auto; padding: 2em; }
+    .post-list a { display: block; margin-bottom: 0.5em; }
+    .markdown-body { border-top: 1px solid #ddd; margin-top: 1em; padding-top: 1em; }
+  </style>
 </head>
 <body>
-  <h1>博客文章</h1>
-  <ul id="post-list"></ul>
-  <script src="main.js"></script>
+  <h1>My Blog</h1>
+  <div class="post-list" id="post-list"></div>
+  <div class="markdown-body" id="post-content"></div>
+
+  <script>
+    async function loadPosts() {
+      const res = await fetch("/api/posts");
+      const posts = await res.json();
+      const list = document.getElementById("post-list");
+
+      for (const slug in posts) {
+        const post = posts[slug];
+        const link = document.createElement("a");
+        link.href = "#";
+        link.textContent = post.title;
+        link.onclick = () => {
+          document.getElementById("post-content").innerHTML =
+            marked.parse(post.content);
+        };
+        list.appendChild(link);
+      }
+    }
+
+    loadPosts();
+  </script>
 </body>
 </html>
